@@ -1,13 +1,16 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import cv2
 
 
-def showImage(myImage):
-    if (myImage.ndim>2):
-        myImage = myImage[:,:,::-1] #OpenCV follows BGR, matplotlib likely follows RGB
+def show_image(my_image, 
+               title = None):
+    if (my_image.ndim>2):
+        my_image = my_image[:,:,::-1] #OpenCV follows BGR, matplotlib likely follows RGB
 
-    fig = plt.subplot()
+    fig = plt.subplot(title = str(title))
 
-    fig.imshow(myImage, cmap = 'gray', interpolation = 'bicubic')
+    fig.imshow(my_image, cmap = 'gray', interpolation = 'bicubic')
 
     plt.show()
     return fig
@@ -119,3 +122,22 @@ def pop_all(l):
 def find_indices(lst, condition):
     return [i for i, elem in enumerate(lst) if condition(elem)]
              
+
+def kmeans_color_quantization(image, clusters = 8, rounds = 1):
+    h,w = image.shape[:2]
+    samples = np.zeros([h*w, 3], dtype = np.float32)
+    count = 0
+
+    for x in range(h):
+        for y in range(w):
+            samples[count] = image[x][y]
+            count+=1
+
+    compactness, labels, centers = cv2.kmeans(samples,
+                                              clusters,
+                                              None,
+                                              (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10**4, 10**(-4)))
+    
+    centers = np.unit8(centers)
+    res = centers[labels.flatten()]
+    return res.reshape((image.shape))
