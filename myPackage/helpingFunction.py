@@ -136,8 +136,32 @@ def kmeans_color_quantization(image, clusters = 8, rounds = 1):
     compactness, labels, centers = cv2.kmeans(samples,
                                               clusters,
                                               None,
-                                              (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10**4, 10**(-4)))
+                                              (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10**4, 10**(-4)),
+                                              rounds,
+                                              cv2.KMEANS_RANDOM_CENTERS)
     
-    centers = np.unit8(centers)
+    centers = np.uint8(centers)
     res = centers[labels.flatten()]
     return res.reshape((image.shape))
+
+def crop_image_white_background(image):
+    working_image = image.copy()
+
+    threshold = 250 #Arbitrarily high threshold to catch white background
+    assign_value = 255
+    threshold_method = cv2.THRESH_BINARY_INV
+
+    gray = cv2.cvtColor(working_image, cv2.COLOR_BGR2GRAY)
+    _,thresholded_image = cv2.threshold(gray, threshold, assign_value, threshold_method)
+
+    #Get external contours
+    contours_edge_white_background = cv2.findContours(result_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours_edge_white_background = contours_edge_white_background[0] if len(contours_edge_white_background) ==2 else contours_edge_white_background[1]
+
+    for cntr in contours_edge_white_background:
+        x,y,w,h = cv2.boundingRect(cntr)
+        ROI = thresholded_image[y:y+h, x:x+w]
+        break
+
+    show_image(ROI)
+    return ROI
