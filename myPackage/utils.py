@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 
 from scipy.spatial import distance 
+from pytesseract import pytesseract
 
 
 def show_image(my_image, 
@@ -175,14 +176,43 @@ def crop_image_white_background(image):
     show_image(ROI)
     return ROI
 
-def detect_SEM_scale_information():
-    
+def detect_SEM_scale_information(image, height_cropped = -100, width_cropped = -400):
+
+    #Text detection and extraction - the bar is usually white on a black font for Jeol images
+    image_cropped = image[height_cropped:, width_cropped:] #Get the right corner of the image - where the information is usually stored
+
+    gray = cv2.cvtColor(image_cropped, cv2.COLOR_BGR2GRAY)
+
+    _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    for cnt in contours:
+    # Get the bounding box of the contour
+        x, y, w, h = cv2.boundingRect(cnt)
+
+    # Filtering contours by aspect ratio and size
+        aspect_ratio = float(w) / h
+        if aspect_ratio > 5:  # Assuming the scale bar is much wider than its height
+        # Draw a rectangle around the detected scale bar (optional visualization)
+            cv2.rectangle(image_cropped, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            
+            
+            print(f"Scale Bar Detected: Width={w} pixels, Height={h} pixels")
+
+            # Assuming you have the scale (e.g., '100 nm') from the image, convert pixel measurements
+            # Example: if '100 nm' corresponds to w pixels, calculate the actual length per pixel.
+            actual_scale_length = 100  # nm (replace this with the actual scale value)
+            scale_length_per_pixel = actual_scale_length / w
+            print(f"Scale length per pixel: {scale_length_per_pixel} nm/pixel")
+
+        break
+
+
+
+
     return None
 
-def simplified_silhouhette_analysis():
-
-
-    return None 
 
 def update_dict(d,updates):
     d.update(updates)
@@ -208,7 +238,8 @@ def closest_point(point, points): #For adjacent cluster
     return closest_point, closest_index
 
 def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, range_clusters, silhouette_tol = 0.7, rounds = 1):
-
+    #Get a graph silhouette coefficient vs cluster numbers to determine the most optimal 
+    
     h,w = image_to_be_clustered.shape[:2]
 
     #Initialize dictionary of number of clusters and their respective silhouette score
@@ -255,3 +286,8 @@ def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, range_
     plt.show()
 
     return cluster_dictionary
+
+
+def get_best_silhouhette_score(cluster_dictionary):
+
+    return None
