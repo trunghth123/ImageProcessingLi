@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
+from scipy.spatial import distance 
+
 
 def show_image(my_image, 
                title = None):
@@ -121,9 +123,9 @@ def pop_all(l):
 
 def find_indices(lst, condition):
     return [i for i, elem in enumerate(lst) if condition(elem)]
-             
 
-def kmeans_color_quantization(image, clusters = 8, rounds = 1):
+def create_samples(image):
+
     h,w = image.shape[:2]
     samples = np.zeros([h*w, 3], dtype = np.float32)
     count = 0
@@ -132,6 +134,12 @@ def kmeans_color_quantization(image, clusters = 8, rounds = 1):
         for y in range(w):
             samples[count] = image[x][y]
             count+=1
+
+    return samples
+
+def kmeans_color_quantization(image, clusters, rounds = 1):
+
+    samples = create_samples(image)
 
     compactness, labels, centers = cv2.kmeans(samples,
                                               clusters,
@@ -142,7 +150,7 @@ def kmeans_color_quantization(image, clusters = 8, rounds = 1):
     
     centers = np.uint8(centers)
     res = centers[labels.flatten()]
-    return res.reshape((image.shape))
+    return res.reshape((image.shape)), compactness, centers, labels
 
 def crop_image_white_background(image):
     working_image = image.copy()
@@ -155,13 +163,95 @@ def crop_image_white_background(image):
     _,thresholded_image = cv2.threshold(gray, threshold, assign_value, threshold_method)
 
     #Get external contours
-    contours_edge_white_background = cv2.findContours(result_filter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours_edge_white_background = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    print(contours_edge_white_background)
     contours_edge_white_background = contours_edge_white_background[0] if len(contours_edge_white_background) ==2 else contours_edge_white_background[1]
 
     for cntr in contours_edge_white_background:
         x,y,w,h = cv2.boundingRect(cntr)
-        ROI = thresholded_image[y:y+h, x:x+w]
+        ROI = working_image[y:y+h, x:x+w]
         break
 
     show_image(ROI)
     return ROI
+
+def detect_SEM_scale_information():
+    
+    return None
+
+def simplified_silhouhette_analysis():
+
+
+    return None 
+
+def update_dict(d,updates):
+    d.update(updates)
+    return d
+
+
+def euclidean_calculation(v1,v2):
+    return sum((p-q)**2 for p, q in zip(v1, v2)) ** .5
+
+
+def closest_point(point, points): #For adjacent cluster
+    if point in points:
+        if type(point) is list:
+            closest_index = distance.cdist([point], points.remove(point)).argmin()
+            closest_point = points.remove(point)[closest_index]
+        elif type(point) is np.ndarray:
+            closest_index = distance.cdist([point], points[~np.all(points == point,axis = 1)]).argmin()
+            closest_point = points[~np.all(points == point,axis = 1)][closest_index]
+        
+    else:
+        closest_index = distance.cdist([point], points).argmin()
+        closest_point = points[closest_index]
+    return closest_point, closest_index
+
+def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, range_clusters, silhouette_tol = 0.7, rounds = 1):
+
+    h,w = image_to_be_clustered.shape[:2]
+
+    #Initialize dictionary of number of clusters and their respective silhouette score
+    cluster_dictionary = {}
+    for i in range_clusters:
+        cluster_dictionary[i] = None
+
+    for clusters_number in range_clusters:
+        s_prime_i_array = []
+        samples = create_samples(image_to_be_clustered)
+        quantized_image, compactness, centers, labels = kmeans_color_quantization(image_to_be_clustered, clusters=clusters_number, rounds=rounds)
+        quantized_image_array = centers[labels.flatten()]
+
+        for center in centers:
+            matching_indices = np.where(np.all(quantized_image_array == center, axis=1))[0]
+            a_prime_i_center = distance.cdist([center], samples[matching_indices], 'euclidean').sum()
+            closest_center, closest_index = closest_point(center, centers)
+            b_prime_i_center0 = distance.cdist([closest_center], samples[matching_indices], 'euclidean').sum()
+            s_prime_i = 1 - a_prime_i_center/b_prime_i_center0
+            s_prime_i_array.append(s_prime_i)
+        
+        silhouette_coefficient_dict = {clusters_number: sum(s_prime_i_array)/len(centers)}
+        cluster_dictionary = update_dict(cluster_dictionary, silhouette_coefficient_dict)
+    
+    #Show results:
+    keys = list(cluster_dictionary.keys())
+    values = list(cluster_dictionary.values())
+
+    # Create the plot
+    plt.figure(figsize=(8, 5))
+    plt.plot(keys, values, marker='o', linestyle='-', color='b')
+
+    # Add titles and labels
+    plt.title('Silhouette coefficient plot')
+    plt.xlabel('Clusters')
+    plt.ylabel('Values')
+
+    #Set limit
+    plt.xlim(min(range_clusters), max(range_clusters))
+    plt.ylim(0, 1)
+
+    # Show the plot
+    plt.grid(True)
+    plt.show()
+
+    return cluster_dictionary
