@@ -9,3 +9,4 @@ threadpoolctl == 3.4.0
 matplotlib == 3.8.4
 matplotlib-inline == 0.1.6
 imageio == 2.34.0
+pytesseract==0.3.13
