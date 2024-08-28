@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import math
 
 from scipy.spatial import distance 
 from pytesseract import pytesseract
@@ -13,7 +14,7 @@ def show_image(my_image,
 
     fig = plt.subplot(title = str(title))
 
-    fig.imshow(my_image, cmap = 'gray', interpolation = 'bicubic')
+    fig.imshow(my_image)
 
     plt.show()
     return fig
@@ -154,7 +155,10 @@ def kmeans_color_quantization(image, clusters, rounds = 1):
     return res.reshape((image.shape)), compactness, centers, labels
 
 def crop_image_white_background(image):
+
+    #SEM images shouldn't have white portion, eliminating cases where screens
     working_image = image.copy()
+    h,w = working_image.shape[:2]
 
     threshold = 250 #Arbitrarily high threshold to catch white background
     assign_value = 255
@@ -163,56 +167,56 @@ def crop_image_white_background(image):
     gray = cv2.cvtColor(working_image, cv2.COLOR_BGR2GRAY)
     _,thresholded_image = cv2.threshold(gray, threshold, assign_value, threshold_method)
 
-    #Get external contours
-    contours_edge_white_background = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    print(contours_edge_white_background)
-    contours_edge_white_background = contours_edge_white_background[0] if len(contours_edge_white_background) ==2 else contours_edge_white_background[1]
+    #Smoothen the image:
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
+    close = cv2.morphologyEx(thresholded_image, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-    for cntr in contours_edge_white_background:
-        x,y,w,h = cv2.boundingRect(cntr)
+    construct_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (math.floor(h/3),math.floor(w/3)))
+    detect_kernel = cv2.morphologyEx(close, cv2.MORPH_OPEN, construct_kernel, iterations=2)
+    
+    #Get external contours
+    contours_edge_white_background, hierarchy = cv2.findContours(detect_kernel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if len(contours_edge_white_background) != 0:
+        biggest_contour = max(contours_edge_white_background,key = cv2.contourArea)
+        x,y,w,h = cv2.boundingRect(biggest_contour)
         ROI = working_image[y:y+h, x:x+w]
-        break
+    else:
+        print("Unable to find continuous white background")
+        ROI = working_image
 
     show_image(ROI)
     return ROI
 
-def detect_SEM_scale_information(image, height_cropped = -100, width_cropped = -400):
-
+def detect_SEM_scale_information(image, height_cropped = -100, width_cropped = -400, show_image_bool = True):
+    image_cropped = image[height_cropped:, :]
+    scale_length = input("What is the length scale of this SEM image?")
     #Text detection and extraction - the bar is usually white on a black font for Jeol images
-    image_cropped = image[height_cropped:, width_cropped:] #Get the right corner of the image - where the information is usually stored
-
     gray = cv2.cvtColor(image_cropped, cv2.COLOR_BGR2GRAY)
 
-    _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+    _, binary = cv2.threshold(gray, 2, 255, cv2.THRESH_BINARY) #Arbitrarily low to catch black section of JEOL images
 
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     for cnt in contours:
     # Get the bounding box of the contour
         x, y, w, h = cv2.boundingRect(cnt)
-
     # Filtering contours by aspect ratio and size
         aspect_ratio = float(w) / h
-        if aspect_ratio > 5:  # Assuming the scale bar is much wider than its height
+        if (aspect_ratio > 10) & (h>1):  # Assuming the scale bar is much wider than its height, arbitrary number & guard against un
         # Draw a rectangle around the detected scale bar (optional visualization)
-            cv2.rectangle(image_cropped, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            
-            
+            new_image = cv2.rectangle(image_cropped, (x, y), (x + w, y + h), (0, 20, 255), 2)
+            print(f"x,y,w,h are {x,y,w,h}")
+            plt.imshow(new_image)
+
             print(f"Scale Bar Detected: Width={w} pixels, Height={h} pixels")
 
-            # Assuming you have the scale (e.g., '100 nm') from the image, convert pixel measurements
-            # Example: if '100 nm' corresponds to w pixels, calculate the actual length per pixel.
-            actual_scale_length = 100  # nm (replace this with the actual scale value)
-            scale_length_per_pixel = actual_scale_length / w
-            print(f"Scale length per pixel: {scale_length_per_pixel} nm/pixel")
-
-        break
-
-
-
-
-    return None
-
+            actual_scale_length = scale_length  # nm (replace this with the actual scale value)
+            scale_length_per_pixel = float(actual_scale_length) / float(w)
+            print(f"Scale length per pixel: {scale_length_per_pixel} um/pixel")
+        else:
+            continue
+    return scale_length_per_pixel
 
 def update_dict(d,updates):
     d.update(updates)
@@ -237,9 +241,12 @@ def closest_point(point, points): #For adjacent cluster
         closest_point = points[closest_index]
     return closest_point, closest_index
 
-def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, range_clusters, silhouette_tol = 0.7, rounds = 1):
-    #Get a graph silhouette coefficient vs cluster numbers to determine the most optimal 
-    
+def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, 
+                                                   range_clusters: list, 
+                                                   silhouette_tol: float = 0.7, 
+                                                   rounds: int = 1):
+    #Get a graph silhouette coefficient vs cluster numbers to determine the most optimal clusters to choose
+
     h,w = image_to_be_clustered.shape[:2]
 
     #Initialize dictionary of number of clusters and their respective silhouette score
@@ -288,6 +295,13 @@ def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, range_
     return cluster_dictionary
 
 
-def get_best_silhouhette_score(cluster_dictionary):
+def get_best_silhouhette_score(cluster_dictionary: dict, number_of_scores: int):
 
-    return None
+
+    list_score = list(cluster_dictionary.values())
+    list_score.sort()
+    best_scores = list_score[-number_of_scores:]
+
+
+
+    return best_scores
