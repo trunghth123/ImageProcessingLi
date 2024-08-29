@@ -59,6 +59,7 @@ class curveAnalyzer:
     
 
 class curveManager:
+    #Manage contours
     def _init_(self):
         self.curves = {}
 
@@ -154,7 +155,7 @@ def kmeans_color_quantization(image, clusters, rounds = 1):
     res = centers[labels.flatten()]
     return res.reshape((image.shape)), compactness, centers, labels
 
-def crop_image_white_background(image):
+def crop_image_white_background(image, show_bool = True):
 
     #SEM images shouldn't have white portion, eliminating cases where screens
     working_image = image.copy()
@@ -184,8 +185,9 @@ def crop_image_white_background(image):
     else:
         print("Unable to find continuous white background")
         ROI = working_image
-
-    show_image(ROI)
+    if show_bool:
+        show_image(ROI, "Region of Interest w/o white background")
+        
     return ROI
 
 def detect_SEM_scale_information(image, height_cropped = -100, width_cropped = -400, show_image_bool = True):
@@ -374,3 +376,51 @@ def remove_outliers(data):
     filtered_data = [x for x in data if lower_bound <= x <= upper_bound]
     
     return filtered_data
+
+
+def find_particle_size(image, histogram):
+
+    #This function will find the interquartile size distribution of all the particles
+    #Preprocessing
+    processed_image = crop_image_white_background(image)
+    gray_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2GRAY)
+
+    #Initialization
+    points_list = []
+    size_list = []
+    assign_value = 255
+    threshold_method = cv2.THRESH_BINARY
+
+    #Assumption 1: the image is primarily filled with articles need analyzing, gap is darker
+    #Assumption 2: Atomic number of Aluminum is lower than that of NMC - thus appearing darker in the final image
+    #Assumption 2 should be reversed while analyzing the anode since Cu > C/ Li-anode
+
+    max_histogram_peak_location = int(np.where(histogram == np.unique(histogram)[-1])[0]) #Histogram is a sorted array from 0-256 containing number of pixels
+    second_largest_histogram_peak = int(np.where(histogram == np.unique(histogram)[-2])[0])
+    threshold_value = (max_histogram_peak_location+second_largest_histogram_peak)/2 #In between point
+    print(threshold_value)
+
+    _,result = cv2.threshold(gray_image, threshold_value, assign_value, threshold_method)
+   
+    show_image(result, 'Image after thresholding')
+
+    cnts, _ = cv2.findContours(result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+    AREA_THRESHOLD = 1
+
+    for c in cnts:
+        area = cv2.contourArea(c)
+        if area < AREA_THRESHOLD:
+            cv2.drawContours(result, [c], -1, 0, -1)
+        else:
+            (x, y), radius = cv2.minEnclosingCircle(c)
+            points_list.append((int(x), int(y)))
+            size_list.append(area)
+
+    #Highlight analyzed section w/ green
+    final_result = cv2.bitwise_and(processed_image, processed_image, mask=result)
+    final_result[result==255] = (36,255,12)
+
+    filtered_size = remove_outliers(size_list) #Get the interquartile 
+    show_size_histogram(filtered_size)
+
+    return size_list
