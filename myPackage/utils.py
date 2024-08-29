@@ -4,11 +4,10 @@ import cv2
 import math
 
 from scipy.spatial import distance 
-from pytesseract import pytesseract
+from typing import Optional
 
-
-def show_image(my_image, 
-               title = None):
+def show_image(my_image: np.ndarray , 
+               title: Optional[str] = None):
     if (my_image.ndim>2):
         my_image = my_image[:,:,::-1] #OpenCV follows BGR, matplotlib likely follows RGB
 
@@ -140,7 +139,9 @@ def create_samples(image):
 
     return samples
 
-def kmeans_color_quantization(image, clusters, rounds = 1):
+def kmeans_color_quantization(image: np.ndarray,
+                              clusters: int, 
+                              rounds: int = 1):
 
     samples = create_samples(image)
 
@@ -155,7 +156,7 @@ def kmeans_color_quantization(image, clusters, rounds = 1):
     res = centers[labels.flatten()]
     return res.reshape((image.shape)), compactness, centers, labels
 
-def crop_image_white_background(image, show_bool = True):
+def crop_image_white_background(image: np.ndarray, show_bool = True):
 
     #SEM images shouldn't have white portion, eliminating cases where screens
     working_image = image.copy()
@@ -190,7 +191,7 @@ def crop_image_white_background(image, show_bool = True):
         
     return ROI
 
-def detect_SEM_scale_information(image, height_cropped = -100, width_cropped = -400, show_image_bool = True):
+def detect_SEM_scale_information(image: np.ndarray, height_cropped: int = -100, show_image_bool: bool = True):
     image_cropped = image[height_cropped:, :]
     scale_length = input("What is the length scale of this SEM image?")
     #Text detection and extraction - the bar is usually white on a black font for Jeol images
@@ -209,18 +210,21 @@ def detect_SEM_scale_information(image, height_cropped = -100, width_cropped = -
         # Draw a rectangle around the detected scale bar (optional visualization)
             new_image = cv2.rectangle(image_cropped, (x, y), (x + w, y + h), (0, 20, 255), 2)
             print(f"x,y,w,h are {x,y,w,h}")
-            plt.imshow(new_image)
+            if show_image_bool:
+                show_image(new_image, 'Visualization image')
 
             print(f"Scale Bar Detected: Width={w} pixels, Height={h} pixels")
 
             actual_scale_length = scale_length  # nm (replace this with the actual scale value)
             scale_length_per_pixel = float(actual_scale_length) / float(w)
+            area_per_pixel_area = scale_length_per_pixel**2
             print(f"Scale length per pixel: {scale_length_per_pixel} um/pixel")
+            print(f"Area per area pixel: {area_per_pixel_area} um^2/pixel^2" )
         else:
             continue
-    return scale_length_per_pixel
+    return scale_length_per_pixel, area_per_pixel_area
 
-def update_dict(d,updates):
+def update_dict(d: dict, updates: dict):
     d.update(updates)
     return d
 
@@ -243,11 +247,22 @@ def closest_point(point, points): #For adjacent cluster
         closest_point = points[closest_index]
     return closest_point, closest_index
 
-def elbow_analysis():
-    return None
+def elbow_analysis(image_to_be_clustered: np.ndarray, 
+                    range_clusters: list, 
+                    silhouette_tol: float = 0.7, 
+                    rounds: int = 1):
+    compact_array = []
+
+    for k in range_clusters:
+        quantized_image, compactness, centers, labels = kmeans_color_quantization(image_to_be_clustered, clusters=k, rounds=rounds)
+        compact_array.append(1/k*compactness)
+    plt.scatter(range_clusters, compact_array)
+    plt.show()
+
+    return compact_array
 
 
-def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, 
+def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered: np.ndarray, 
                                                    range_clusters: list, 
                                                    silhouette_tol: float = 0.7, 
                                                    rounds: int = 1):
@@ -284,6 +299,8 @@ def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered,
     # Create the plot
     plt.figure(figsize=(8, 5))
     plt.plot(keys, values, marker='o', linestyle='-', color='b')
+
+    plt.axhline(y=silhouette_tol, color='r', linestyle='--', label='y = 0.7')
 
     # Add titles and labels
     plt.title('Silhouette coefficient plot')
@@ -344,7 +361,7 @@ def show_histogram(image):
     plt.plot(hist)
     plt.xlim([0,256])
 
-    return None
+    return hist
 
 def show_size_histogram(size_list):
     # Check if the list is empty
