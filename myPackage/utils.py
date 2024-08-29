@@ -241,6 +241,10 @@ def closest_point(point, points): #For adjacent cluster
         closest_point = points[closest_index]
     return closest_point, closest_index
 
+def elbow_analysis():
+    return None
+
+
 def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered, 
                                                    range_clusters: list, 
                                                    silhouette_tol: float = 0.7, 
@@ -305,3 +309,68 @@ def get_best_silhouhette_score(cluster_dictionary: dict, number_of_scores: int):
 
 
     return best_scores
+
+def plot_top_two_quantized_images(image_to_be_clustered, cluster_dictionary, rounds=1):
+
+    sorted_clusters = sorted(cluster_dictionary.items(), key=lambda item: item[1], reverse=True)
+    top_two_clusters = [sorted_clusters[0][0], sorted_clusters[1][0]]  # Extracting the keys (cluster numbers) of the two highest values
+
+    for clusters_number in top_two_clusters:
+        quantized_image, _, centers, _ = kmeans_color_quantization(image_to_be_clustered, clusters=clusters_number, rounds=rounds)
+        
+        # Plot the quantized image
+        plt.figure(figsize=(5, 5))
+        plt.imshow(cv2.cvtColor(quantized_image, cv2.COLOR_BGR2RGB))  # Convert from BGR to RGB for correct color display
+        plt.title(f'Quantized Image with {clusters_number} Clusters')
+        plt.axis('off')
+        plt.show()
+
+    return top_two_clusters
+
+
+def show_histogram(image):
+    #Calculate histogram of this image
+
+    hist = cv2.calcHist([image], [0], None, [256], [0,256])
+    normalizeHist = hist/hist.sum() 
+
+
+    plt.figure()
+    plt.title('Grayscale Histogram')
+    plt.xlabel('Bins')
+    plt.ylabel('# of pixels')
+    plt.plot(hist)
+    plt.xlim([0,256])
+
+    return None
+
+def show_size_histogram(size_list):
+    # Check if the list is empty
+    if not size_list:
+        print("The size list is empty. No histogram to display.")
+        return
+
+    # Create a histogram
+    plt.hist(size_list, bins=10, edgecolor='black', alpha=0.7)
+    plt.title('Histogram of Size List')
+    plt.xlabel('Size')
+    plt.ylabel('Frequency')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.show()
+
+
+def remove_outliers(data):
+    data_array = np.array(data)
+    
+    # Calculate the Interquartile Range (IQR)
+    Q1 = np.percentile(data_array, 25)
+    Q3 = np.percentile(data_array, 75)
+    IQR = Q3 - Q1
+    
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    
+    # Filter the data to exclude outliers
+    filtered_data = [x for x in data if lower_bound <= x <= upper_bound]
+    
+    return filtered_data
