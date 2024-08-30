@@ -32,3 +32,6 @@ Images go here
 For the quantization process. To choose the optimal amount of clusters, we used silhouette analysis. I prefer this because it's easier to quantify which are the best choices compared to the somewhat qualitative method of elbow analysis. The silhouette analysis used in this project is based off of the simplified silhouette defined in https://en.wikipedia.org/wiki/Silhouette_(clustering)
 
 
+## Final results
+
+Images go here
