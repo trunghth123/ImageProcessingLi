@@ -1,5 +1,5 @@
 # ImageProcessingLi
-An image processing project for lithium metal/ NMC particles - streamline the data analysis project for R&D labs and university labs.
+An image processing project for lithium metal/ NMC particles - streamline the image processing/ data analysis for R&D labs and university labs.
 
 
 ## Introduction
