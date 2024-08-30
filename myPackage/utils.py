@@ -232,6 +232,8 @@ def update_dict(d: dict, updates: dict):
 def euclidean_calculation(v1,v2):
     return sum((p-q)**2 for p, q in zip(v1, v2)) ** .5
 
+def nth_largest(arr, n): 
+    return np.partition(arr, -n)[-n] 
 
 def closest_point(point, points): #For adjacent cluster
     if point in points:
@@ -426,7 +428,8 @@ def find_particle_size(image, histogram, per_pixel_area):
     final_result = cv2.bitwise_and(processed_image, processed_image, mask=result)
     final_result[result==255] = (36,255,12)
 
-    filtered_size = remove_outliers(size_list)*per_pixel_area #Get the interquartile 
-    show_size_histogram(filtered_size)
+    
+    filtered_size = np.array(remove_outliers(size_list))*per_pixel_area #Get the interquartile 
+    show_size_histogram(list(filtered_size))
 
     return size_list
