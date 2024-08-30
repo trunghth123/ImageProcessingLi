@@ -318,17 +318,6 @@ def silhouette_analysis_of_kmeans_image_clustering(image_to_be_clustered: np.nda
     return cluster_dictionary
 
 
-def get_best_silhouhette_score(cluster_dictionary: dict, number_of_scores: int):
-
-
-    list_score = list(cluster_dictionary.values())
-    list_score.sort()
-    best_scores = list_score[-number_of_scores:]
-
-
-
-    return best_scores
-
 def plot_top_two_quantized_images(image_to_be_clustered, cluster_dictionary, rounds=1):
 
     sorted_clusters = sorted(cluster_dictionary.items(), key=lambda item: item[1], reverse=True)
@@ -395,7 +384,7 @@ def remove_outliers(data):
     return filtered_data
 
 
-def find_particle_size(image, histogram):
+def find_particle_size(image, histogram, per_pixel_area):
 
     #This function will find the interquartile size distribution of all the particles
     #Preprocessing
@@ -437,7 +426,7 @@ def find_particle_size(image, histogram):
     final_result = cv2.bitwise_and(processed_image, processed_image, mask=result)
     final_result[result==255] = (36,255,12)
 
-    filtered_size = remove_outliers(size_list) #Get the interquartile 
+    filtered_size = remove_outliers(size_list)*per_pixel_area #Get the interquartile 
     show_size_histogram(filtered_size)
 
     return size_list
