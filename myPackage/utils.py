@@ -354,7 +354,7 @@ def show_histogram(image):
 
     return hist
 
-def show_size_histogram(size_list):
+def show_size_histogram(size_list, title: str):
     # Check if the list is empty
     if not size_list:
         print("The size list is empty. No histogram to display.")
@@ -362,7 +362,7 @@ def show_size_histogram(size_list):
 
     # Create a histogram
     plt.hist(size_list, bins=10, edgecolor='black', alpha=0.7)
-    plt.title('Histogram of Size List')
+    plt.title(title)
     plt.xlabel('Size')
     plt.ylabel('Frequency')
     plt.grid(axis='y', linestyle='--', alpha=0.7)
@@ -430,6 +430,16 @@ def find_particle_size(image, histogram, per_pixel_area):
 
     
     filtered_size = np.array(remove_outliers(size_list))*per_pixel_area #Get the interquartile 
-    show_size_histogram(list(filtered_size))
+    show_size_histogram(list(filtered_size), 'Particle size distribution')
 
-    return size_list
+    return filtered_size
+
+
+def find_radius_particle(size_list):
+    #Assuming the particles radius are spherical like in DFN
+    radius_list = list((np.array(size_list)/math.pi)**(0.5))
+    
+
+    show_size_histogram(radius_list, "Radius distribution")
+
+    return radius_list
