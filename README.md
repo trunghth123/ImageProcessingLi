@@ -1,5 +1,5 @@
 # ImageProcessingLi
-An image processing project for lithium metal/ NMC particles - streamline the image processing/ data analysis for R&D labs and university labs.
+An image processing project for anode/ cathode particles - streamline the image processing/ data analysis for R&D labs and university labs.
 
 
 ## Introduction
@@ -44,6 +44,8 @@ For the quantization process. To choose the optimal amount of clusters, we used 
 ## Citations:
 
 “JEOL USA Blog: Achieving Pristine Cross Sections of Battery Samples for Scanning Electron Microscopy.” JEOL USA, Inc. Accessed August 30, 2024. https://www.jeolusa.com/NEWS-EVENTS/Blog/pristine-cross-sections-of-batteries. 
+
 “Silhouette (Clustering).” Wikipedia, July 1, 2024. https://en.wikipedia.org/wiki/Silhouette_(clustering). 
+
 “Selecting the Number of Clusters with Silhouette Analysis on Kmeans Clustering.” scikit. Accessed August 30, 2024. https://scikit-learn.org/stable/auto_examples/cluster/plot_kmeans_silhouette_analysis.html. 
 
