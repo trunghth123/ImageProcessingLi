@@ -386,7 +386,9 @@ def remove_outliers(data):
     return filtered_data
 
 
-def find_particle_size(image, histogram, per_pixel_area):
+def find_particle_size_cathode(image: np.ndarray, histogram, per_pixel_area: float, type: str):
+    #Input: Quantized image
+
 
     #This function will find the interquartile size distribution of all the particles
     #Preprocessing
@@ -400,7 +402,8 @@ def find_particle_size(image, histogram, per_pixel_area):
     threshold_method = cv2.THRESH_BINARY
 
     #Assumption 1: the image is primarily filled with articles need analyzing, gap is darker
-    #Assumption 2: Atomic number of Aluminum is lower than that of NMC - thus appearing darker in the final image
+    #Assumption 2: Atomic number of Aluminum is lower than that of cathode active material 
+    # - thus appearing darker in the final image
     #Assumption 2 should be reversed while analyzing the anode since Cu > C/ Li-anode
 
     max_histogram_peak_location = int(np.where(histogram == np.unique(histogram)[-1])[0]) #Histogram is a sorted array from 0-256 containing number of pixels
@@ -438,8 +441,87 @@ def find_particle_size(image, histogram, per_pixel_area):
 def find_radius_particle(size_list):
     #Assuming the particles radius are spherical like in DFN
     radius_list = list((np.array(size_list)/math.pi)**(0.5))
-    
 
     show_size_histogram(radius_list, "Radius distribution")
 
     return radius_list
+
+def crop_information_bar(image: np.ndarray, show_bool: bool = True):
+    #SEM images shouldn't have white portion, eliminating the information bar
+    working_image = image.copy()
+    h,w = working_image.shape[:2]
+
+    threshold = 2 #Arbitrarily low threshold to catch black background
+    assign_value = 255
+    threshold_method = cv2.THRESH_BINARY_INV
+    
+    gray = cv2.cvtColor(working_image, cv2.COLOR_BGR2GRAY)
+    _,thresholded_image = cv2.threshold(gray, threshold, assign_value, threshold_method)
+
+    
+    #Get external contours
+    contours_edge_white_background, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if len(contours_edge_white_background) != 0:
+        biggest_contour = max(contours_edge_white_background,key = cv2.contourArea)
+        x,y,w,h = cv2.boundingRect(biggest_contour)
+        ROI = working_image[0:y, :] #Information bar is a rectangle situated at the end
+    else:
+        print("Unable to find continuous white background")
+        ROI = working_image
+    if show_bool:
+        show_image(ROI, "Region of Interest w/o white background")
+        
+    return ROI
+
+
+def thresholding_range(image: np.ndarray, lower_boundary: int, upper_boundary: int):
+    #Input: Quantized image
+    #Output: grey binary image
+    mask = cv2.inRange(image, np.array([lower_boundary]*3), np.array([upper_boundary]*3))
+    
+    isolated_peak = cv2.bitwise_and(image, image, mask=mask)
+    _,binary_image = cv2.threshold(isolated_peak, lower_boundary, 255, cv2.THRESH_BINARY)
+    gray_binary_image = cv2.cvtColor(binary_image, cv2.COLOR_BGR2GRAY)
+    
+    show_image(gray_binary_image, ' Gray Binary Image Isolated features')
+    return gray_binary_image
+
+
+def find_particle_size_anode(gray_image: np.ndarray, kmeans_image: np.ndarray, 
+                             aspect_ratio: Optional[int] = 3, 
+                             approx_filter_constant: Optional[int] = 12):
+
+    #Input: gray image, follows range thresholding operation
+    #Checking for dimensions
+    assert len(gray_image.shape) == 2, 'Dimension should be 2'
+    assert len(kmeans_image.shape) == 3, 'Dimension should be 3'
+
+    points_list = []
+    size_list = []
+
+    processed_image = kmeans_image.copy()
+    result = gray_image.copy() 
+
+    cnts, _ = cv2.findContours(result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+    AREA_THRESHOLD = 1
+    
+
+    for c in cnts:
+        area = cv2.contourArea(c)
+        x, y, w, h = cv2.boundingRect(c)
+        epsilon = 0.02 * cv2.arcLength(c, True)  # Adjust epsilon for sensitivity
+        approx = cv2.approxPolyDP(c, epsilon, True)
+        if (area < AREA_THRESHOLD) or (w/h > aspect_ratio) or (len(approx) >approx_filter_constant): #Filter for only Si-crystalline particles
+            cv2.drawContours(result, [c], -1, 0, -1) 
+        else:
+            (x, y), radius = cv2.minEnclosingCircle(c)
+            points_list.append((int(x), int(y)))
+            size_list.append(area)
+
+    #Highlight analyzed section w/ green
+    final_result = cv2.bitwise_and(processed_image, processed_image, mask=result)
+    final_result[result==255] = (36,255,12)
+    show_image(final_result)
+
+    return None
