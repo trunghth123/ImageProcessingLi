@@ -18,10 +18,12 @@ def show_image(my_image: np.ndarray ,
     plt.show()
     return fig
 
+
 def listNeighbors(x,y, points):
     candidates = [(x-1,y), (x+1,y), (x,y-1), (x,y-1), (x,y+1),
                   (x-1, y-1), (x+1,y+1), (x+1,y-1), (x-1, y+1)]
     return (c for c in candidates if c in points)
+
 
 class curveAnalyzer:
     def _init_(self, coordinates):
@@ -119,12 +121,15 @@ class curveManager:
         curve1 = self.curves[name1]
         curve2 = self.curves[name2]
 
+
 def pop_all(l):
     r, l[:] = l[:], []
     return r
 
+
 def find_indices(lst, condition):
     return [i for i, elem in enumerate(lst) if condition(elem)]
+
 
 def create_samples(image):
 
@@ -138,6 +143,7 @@ def create_samples(image):
             count+=1
 
     return samples
+
 
 def kmeans_color_quantization(image: np.ndarray,
                               clusters: int, 
@@ -155,6 +161,7 @@ def kmeans_color_quantization(image: np.ndarray,
     centers = np.uint8(centers)
     res = centers[labels.flatten()]
     return res.reshape((image.shape)), compactness, centers, labels
+
 
 def crop_image_white_background(image: np.ndarray, show_bool = True):
 
@@ -224,6 +231,7 @@ def detect_SEM_scale_information(image: np.ndarray, height_cropped: int = -100, 
             continue
     return scale_length_per_pixel, area_per_pixel_area
 
+
 def update_dict(d: dict, updates: dict):
     d.update(updates)
     return d
@@ -232,8 +240,10 @@ def update_dict(d: dict, updates: dict):
 def euclidean_calculation(v1,v2):
     return sum((p-q)**2 for p, q in zip(v1, v2)) ** .5
 
+
 def nth_largest(arr, n): 
     return np.partition(arr, -n)[-n] 
+
 
 def closest_point(point, points): #For adjacent cluster
     if point in points:
@@ -354,6 +364,7 @@ def show_histogram(image):
 
     return hist
 
+
 def show_size_histogram(size_list, title: str):
     # Check if the list is empty
     if not size_list:
@@ -386,7 +397,7 @@ def remove_outliers(data):
     return filtered_data
 
 
-def find_particle_size_cathode(image: np.ndarray, histogram, per_pixel_area: float, type: str):
+def find_particle_size_cathode(image: np.ndarray, histogram, per_pixel_area: float):
     #Input: Quantized image
 
 
@@ -446,6 +457,7 @@ def find_radius_particle(size_list):
 
     return radius_list
 
+
 def crop_information_bar(image: np.ndarray, show_bool: bool = True):
     #SEM images shouldn't have white portion, eliminating the information bar
     working_image = image.copy()
@@ -488,9 +500,11 @@ def thresholding_range(image: np.ndarray, lower_boundary: int, upper_boundary: i
     return gray_binary_image
 
 
-def find_particle_size_anode(gray_image: np.ndarray, kmeans_image: np.ndarray, 
+def find_particle_size_anode(gray_image: np.ndarray, 
+                             kmeans_image: np.ndarray, 
+                             per_pixel_area: float,
                              aspect_ratio: Optional[int] = 3, 
-                             approx_filter_constant: Optional[int] = 12):
+                             approx_filter_constant: Optional[int] = 12, ):
 
     #Input: gray image, follows range thresholding operation
     #Checking for dimensions
@@ -504,7 +518,7 @@ def find_particle_size_anode(gray_image: np.ndarray, kmeans_image: np.ndarray,
     result = gray_image.copy() 
 
     cnts, _ = cv2.findContours(result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    AREA_THRESHOLD = 1
+    AREA_THRESHOLD = 5
     
 
     for c in cnts:
@@ -523,5 +537,7 @@ def find_particle_size_anode(gray_image: np.ndarray, kmeans_image: np.ndarray,
     final_result = cv2.bitwise_and(processed_image, processed_image, mask=result)
     final_result[result==255] = (36,255,12)
     show_image(final_result)
+    filtered_size = np.array(remove_outliers(size_list))*per_pixel_area #Get the interquartile 
+    show_size_histogram(list(filtered_size), 'Particle size distribution')
 
-    return None
+    return filtered_size
