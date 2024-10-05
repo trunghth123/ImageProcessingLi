@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import math
+import pybamm
 
 from scipy.spatial import distance 
 from typing import Optional
@@ -541,3 +542,15 @@ def find_particle_size_anode(gray_image: np.ndarray,
     show_size_histogram(list(filtered_size), 'Particle size distribution')
 
     return filtered_size
+
+
+def area_weighted_mean_radius(radii, areas):
+    # Calculate area-weighted mean radius
+    weighted_mean_radius = np.sum(areas * radii) / np.sum(areas)
+
+    # Calculate weighted standard deviation
+    weighted_variance = np.sum(areas * (radii - weighted_mean_radius) ** 2) / np.sum(areas)
+    weighted_std_dev = np.sqrt(weighted_variance)
+    
+    return weighted_mean_radius, weighted_std_dev
+
