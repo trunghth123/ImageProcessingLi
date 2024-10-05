@@ -42,11 +42,11 @@ For the quantization process. To choose the optimal amount of clusters, we used 
 ![Histogram of particle sizes](https://github.com/user-attachments/assets/d0445ef1-a7e8-4cc2-9cdd-3ff0934c86f7)
 
 ## Final results of using this histogram to simulate 
-Following the tutorial entailed here: https://colab.research.google.com/github/pybamm-team/PyBaMM/blob/main/docs/source/examples/notebooks/models/DFN-with-particle-size-distributions.ipynb#scrollTo=VFnAH2e6Ngof and here https://github.com/pybamm-team/PyBaMM/blob/develop/docs/source/examples/notebooks/models/MPM.ipynb, we simulate the a cell - having the cathode particle radii distribution similar to that of the analyzed image. We had 
+Following the tutorial entailed here: https://colab.research.google.com/github/pybamm-team/PyBaMM/blob/main/docs/source/examples/notebooks/models/DFN-with-particle-size-distributions.ipynb#scrollTo=VFnAH2e6Ngof and here https://github.com/pybamm-team/PyBaMM/blob/develop/docs/source/examples/notebooks/models/MPM.ipynb, we simulate a NMC-LiPF6 (EC:DMC) - Graphite/Si cell - having the cathode particle radii distribution similar to that of the analyzed image.
 
 ![Simulation_output](https://github.com/user-attachments/assets/5a7af679-27c3-44de-afc8-43f7b7b8a3dd)
 
-
+Upon further analyses we see that: 
 
 ## Citations:
 
