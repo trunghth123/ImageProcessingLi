@@ -37,9 +37,15 @@ As you can see, it will be quite difficult to automate the thresholding selectio
 For the quantization process. To choose the optimal amount of clusters, we used silhouette analysis. I prefer this because it's easier to quantify which are the best choices compared to the somewhat qualitative method of elbow analysis. The silhouette analysis used in this project is based off of the simplified silhouette defined in https://en.wikipedia.org/wiki/Silhouette_(clustering). Note that domain context will still be needed here to determine if the chosen k-clusters make sense. In this case, 3 was chosen because there was the porous section, cathode active material and Al foil chosen. 
 
 
-## Final results
+## Final results of histogram
 
 ![Histogram of particle sizes](https://github.com/user-attachments/assets/d0445ef1-a7e8-4cc2-9cdd-3ff0934c86f7)
+
+## Final results of using this histogram to simulate 
+Following the tutorial entailed here: https://colab.research.google.com/github/pybamm-team/PyBaMM/blob/main/docs/source/examples/notebooks/models/DFN-with-particle-size-distributions.ipynb#scrollTo=VFnAH2e6Ngof and here https://github.com/pybamm-team/PyBaMM/blob/develop/docs/source/examples/notebooks/models/MPM.ipynb, we simulate the a cell - having the cathode particle radii distribution similar to that of the analyzed image. We had 
+
+
+
 
 ## Citations:
 
@@ -48,4 +54,6 @@ For the quantization process. To choose the optimal amount of clusters, we used 
 “Silhouette (Clustering).” Wikipedia, July 1, 2024. https://en.wikipedia.org/wiki/Silhouette_(clustering). 
 
 “Selecting the Number of Clusters with Silhouette Analysis on Kmeans Clustering.” scikit. Accessed August 30, 2024. https://scikit-learn.org/stable/auto_examples/cluster/plot_kmeans_silhouette_analysis.html. 
+
+Marquis, Scott G., Valentin Sulzer, Robert Timms, Colin P. Please, and S. Jon Chapman. "An asymptotic derivation of a single particle model with electrolyte." Journal of The Electrochemical Society, vol. 166, no. 15, 2019, pp. A3693–A3706. https://doi.org/10.1149/2.0341915jes.
 
